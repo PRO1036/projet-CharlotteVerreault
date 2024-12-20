@@ -1,0 +1,179 @@
+---
+title: "Projet final"
+author: "Charlotte Verreault et Eve Martinez"
+date: "2024-12-12"
+output: html_document
+---
+
+
+## Introduction
+
+En tant que fanatiques de hockey, nous nous sommes demandé quelles sont les variables ou les caractéristiques nécessaire qui pourrait augmenter les chances d’un jeune garçon à devenir un joueur d’hockey professionnel. Pour répondre à notre question principal de recherche, nous allons analyser plusieurs sous question ; Dans quelle ville/pays devrait-il être né, quel mois de l’année devrait-il être né, quelle taille et quelle poids doit-il avoir pour mieux performer, quelle position est la plus idéale pour maximiser ses chances et enfin est-il préférable d’être droitier ou gaucher?  
+
+Pour répondre à ces questions, nous allons utiliser le jeu de donnée nhl_rosters tiré de l’article « Are Birth Dates Still Destiny for Canadian NHL Players? » de Jlaw.  Ce jeu de donnée contient 18 variables et 54 883 observations. Les variables que nous avons principalement utilisées sont season, position_type, shoot_catches, height_in_centimeters, weight_in_kilograms, birth_date et birth_city. De plus, les observations commencent à partir de la saison 1917-1918 puis fini avec celle de 2023-2024 et elles comprennent tous les joueurs de toutes les équipes de la ligue national. 
+1-	Dans quelle ville et pays devrait-il être né?
+
+2-	Quel mois de l’année devrait-il être né?
+
+3-	Quelle taille et quel poids doit-il avoir?
+
+4-	Quelle est la position sur la glace devrait-il choisir?
+
+5-	Est-il préférable d’être droitier ou gaucher?  
+ 
+
+## Importation des données
+
+```{r packages et données}
+library(tidyverse)
+library(openintro)
+library(infer)
+library(parsnip)
+tuesdata <- tidytuesdayR::tt_load('2024-01-09')
+nhl_rosters <- tuesdata$nhl_rosters
+```
+## 1 - Dans quelle ville et pays devrait-il être né?
+
+Pour déterminer dans quelle ville un joueur de hockey, on doit trouver la ville d'où viennent le plus de joueurs. Pour ce faire, on peut simplement faire un group_by de notre variable birth_city, un count et arrangé en ordre décroissant pour avoir la ville ayant le plus de joueurs en haut. On obtient Toronto comme ville native du plus grand nombre de joueurs. On remarque aussi que les villes ayant le plus de joueurs natifs sont les grandes villes canadiennes, comme Montréal, Edmonton et Ottawa. Finalement, on peut conclure que d'être né dans une grande ville augmente les chances de devenir un joueur professionnel et le fait d'être canadiens augmente aussi les chances d'une personne.
+
+```{r Ville ayant le plus de joueurs natifs}
+nhl_rosters %>%
+  group_by(birth_city) %>%
+  count(birth_city) %>%
+  arrange(desc(n)) 
+
+```
+
+## 2 -	Quel mois de l’année devrait-il être né?
+
+Pour déterminer quel mois de l'année un joueur devrait être né pour maximiser les chances de devenir un joueur professionnel, on doit commencer par extraire nos mois de la variable birth_date avec un mutate en utilisant la fonction %m dans format que nous avons trouvé sur le site https://sqlpad.io/tutorial/extract-year-r-complete-guide/. On utilise ensuite les mêmes étapes que précédemment pour trouver quel mois de l'année le plus de joueurs professionnels sont nés. On remarque que les mois de janvier, février, mars et avril ont le plus de naissances. En allant rechercher le nombre de naissance par année, on peut observer qu'il y a plus de naissance au mois de mai, juin, juillet et août (Données obtenues sur le site de statistique Canada : https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid=1310041501). On peut donc conclure que d'être né au début de l'année augmente les chances d'un joueur à devenir professionnel.
+
+```{r Mois de lannée où il y a le plus de joueurs nés}
+nhl_rosters %>%
+  mutate(birth_month = birth_month <- format(nhl_rosters$birth_date, "%m")) %>%
+  group_by(birth_month) %>%
+  count(birth_month) %>%
+  arrange(desc(n))
+```
+
+## 3 - Quelle taille et quel poids doit-il avoir?
+
+Pour déterminer la grandeur et la taille optimale qu'un joueur devrait avoir pour augmenter ses chances de devenir un professionnel. On peut commencer par trouver la moyenne de grandeur et de poids des joueurs canadiens qui ont joué pendant la saison 2023-2024. On a décidé de comparer seulement les joueurs canadiens, puisqu'il s'agit du pays ayant le plus de joueurs de hockey et la saison 2023-2024, puisqu'il s'agit de la plus récente. Pour ce faire, nous avons créé un nouveau data frame qui filtre nos données pour avoir seulement les joueurs canadiens de la saison 2023-2024. Ensuite, à partir de ce nouveau data frame, on peut utiliser la fonction summarize pour calculer la moyenne de la grandeur et du poids. Avec ce que l'on obtient, on peut comparer nos résultats avec la moyenne de grandeur et de poids pour la population générale canadienne pour voir s'ils ont un impact. Pour les joueurs de hockey, la moyenne de grandeur est de 186,45 cm et la moyenne de poids est de 90,95 kg. Pour la population générale canadienne, pour les hommes, la moyenne de grandeur est de 174,6 cm et la moyenne de poids est de 82,5 (Données obtenues à partir du site de Statistique Canada : https://www150.statcan.gc.ca/n1/pub/82-003-x/2011003/article/11533/tbl/tbl1-fra.htm). On remarque que les deux moyennes sont plus élevées pour les joueurs de hockey que pour la population générale. Cela nous amène à conclure que la taille et le poids ont une influence sur les chances de devenir un joueur professionnel. Plus un joueur est grand et lourd, plus il a des chances de devenir professionnel. 
+
+```{r nouveau dataframe avec les joueurs canadiens de la saison 2023/2024}
+nhl_rosters2023_2024 <- nhl_rosters %>%
+  filter(birth_country == "CAN", season == "20232024")
+```
+
+```{r La moyenne de grandeur des joueurs canadiens}
+nhl_rosters2023_2024 %>%
+  filter(!is.na(height_in_centimeters)) %>%
+  summarize(mean_height = mean(height_in_centimeters))
+```
+```{r La moyenne de poids des joueurs canadiens}
+nhl_rosters2023_2024 %>%
+  filter(!is.na(weight_in_kilograms)) %>%
+  summarize(mean_weight = mean(weight_in_kilograms))
+```
+
+On a aussi voulu voir si la grandeur des joueurs avait augmenté au fil des années depuis le début de la ligue nationale. Pour ce faire, nous avons fait un graphique qui représente l'évolution des grandeurs des joueurs de hockey. En utilisant un geom_line avec en x les années et en y la moyenne des grandeurs, on peut facilement visualiser le tout et voir qu'il y a effectivement une évolution importante du côté de la grandeur des joueurs. Pour obtenir notre nouvelle variable des moyennes de grandeur, nous avons créé un nouveau dataframe qui contient seulement les saisons et les grandeurs et qui calcule nos moyennes de grandeurs et qui filtre pour enlever les valeurs manquantes de notre calcul de moyenne. On peut donc encore conclure que la grandeur est un facteur important qui influence beaucoup la possibilité de devenir un joueur de hockey professionnel.
+
+```{r Graphique de laugmentation de la taille au fil des années}
+nhl_rosters2 <- nhl_rosters %>%
+  select(season, height_in_centimeters) %>%
+  group_by(season) %>%
+  summarise(mean_height = mean(height_in_centimeters)) %>%
+  filter (mean_height != "NA")
+            
+ggplot(nhl_rosters2, aes(x = season, y = mean_height)) +
+geom_line() +
+  labs(title = "Moyenne des grandeurs des joueurs de hockey professionnels", 
+       subtitle = "Au fils des années", 
+       x = "Années", 
+       y = "Moyenne des grandeurs")
+
+```
+
+
+De plus, nous voulions voir si la grandeur a une influence sur la position du joueur. Pour ce faire, nous avons fait un test d'hypothèse avec ANOVA. Dans notre cas, l'hypothèse nulle serait que les moyennes de grandeur de chaque position sont égales et l'hypothèse alternative est qu'il y a au moins une moyenne qui diffère. Pour faire l'analyse, on commence par spécifier les variables que l'on veut comparer, soit height_in_centimeters et position_type. Ensuite, on calcul notre statistique observée avec le test de Fisher et on calcul notre distribution nulle que l'on peut ensuite visualiser pour voir notre statistique se trouve où par rapport à nos valeurs. On remarque qu'elle se trouve très loin et que nos valeurs n'ont peut-être pas de lien. Pour s'assurer de cela, on calcul notre p-value avec la fonction get_p_value. On obtient une p-value de 0, ce qui nous indique que l'on doit rejeter notre hypothèse nulle et accepter notre hypothèse alternative qui dit qu'il y a au moins une moyenne qui diffère. On peut donc en conclure qu'il n'y a pas de corrélation entre la grandeur d'un joueur et sa position sur la glace.
+
+```{r spécification}
+nhl_rosters %>%
+  specify(height_in_centimeters ~ position_type) 
+```
+
+
+```{r statistique observée}
+observed_f_statistic <- nhl_rosters2023_2024 %>%
+  filter(!is.na(height_in_centimeters)) %>%
+  specify(response = height_in_centimeters, explanatory = position_type) %>%
+  hypothesize(null = "independence") %>%
+  calculate(stat = "F")
+```
+
+```{r test anova}
+null_dist_anova <- nhl_rosters2023_2024 %>%
+  filter(!is.na(height_in_centimeters)) %>%
+  specify(response = height_in_centimeters, explanatory = position_type) %>%
+  hypothesize(null = "independence") %>%
+  generate(reps = 1000, type = "permute") %>%
+  calculate(stat = "F")
+```
+
+```{r visualisation anova}
+null_dist_anova %>%
+  visualize() + 
+  shade_p_value(observed_f_statistic,
+                direction = "greater")
+```
+
+```{r p-value}
+p_value <- null_dist_anova %>%
+  get_p_value(obs_stat = observed_f_statistic,
+              direction = "greater")
+
+p_value
+```
+
+## 4-	Quelle est la position sur la glace devrait-il choisir?
+
+Pour déterminer la position qu’un joueur devrait occuper sur la glace, on commence par trouver le top 6 des pays de naissance avec le plus de joueurs. Il est donc possible de constater qu’un grand nombre de joueurs de la LNH sont nés au Canada et aux États-Unis, ainsi qu’en Suède et ailleurs.  Cela a pour but de déterminer s'il y a une corrélation entre le pays de naissance et la position que tu pourrais être plus propice à avoir.  Pour bien le visualiser, on peut faire un graphique de la position des joueurs en fonction de leur pays de naissance. En prenant seulement les 6 pays plus haut, on crée un graphe à barre avec des facettes selon le pays de naissance pour pouvoir comparer chaque proportion de position selon chaque pays. Par contre, on s’est aperçu qui n’avait pas vraiment de relation entre le pays et la position. Cela signifie que peut importe le joueur vient d’où il a autant de chance de devenir attaquant, défenseur ou gardien de but. Le pays ne va rien changer. Cependant, on remarque que, dans tous les pays, il y a une majorité de joueurs qui sont attaquants, puisque, bien évidemment, une équipe contient plus d’attaquants que les autres positions. Il est donc possible de conclure que le jeune garçon a plus de chance de jouer professionnellement s'il est attaquant, et ce, peu importe, il vient de quel pays. 
+
+```{r 6 pays ayant le plus de joueurs natifs}
+nhl_rosters %>%
+  select(position_type, birth_country) %>%
+  count(birth_country) %>%
+  arrange(desc(n)) %>%
+  slice(1:6)
+```
+
+```{r Graphique qui montre la quantité de joueurs selon leurs positions et leur pays natif}
+nhl_rosters34 <- nhl_rosters %>%
+  filter(birth_country == c("CAN", "USA", "SWE", "CZE", "RUS", "FIN"))
+
+ggplot(nhl_rosters34, aes(x = position_type, fill = birth_country)) +
+  geom_bar() +
+  facet_wrap(~birth_country) +
+  labs(title = "Nombre de joueurs de chaque position", 
+       subtitle = "Pour les 6 pays ayant le plus de joueurs natifs",
+       x = "Position des joueurs",
+       y = "Nombre de joueurs",
+       fill = "Pays de naissance")
+```
+
+## 5 -	Est-il préférable d’être droitier ou gaucher? 
+
+Pour finir, il faut savoir si notre jeune joueur dit être gaucher ou droitier. Pour ce faire, on doit utiliser la fonction count pour compter la proportion de gaucher et droitier des joueurs de la ligne national. Il faut commencer par extraire les valeurs manquantes, car nous n'avons pas toutes les données. À partir de ce tableau, il est possible de remarquer qu’il y a beaucoup plus de gauchers que de droitier, ce qui est une grande surprise. En effet, selon Radio-Canada (Données obtenues :
+https://ici.radio-canada.ca/ohdio/premiere/emissions/moteur-de-recherche/segments/rattrapage/1880298/pourquoi-il-y-a-moins-gauchers-que-droitiers)  il y aurait seulement entre 3% et 15% de la population qui serait gauchère. Ce qui est vraiment une minorité. Par contre, dans la LNH, ce n’est pas la même réalité. On peut donc conclure qu’il vaut mieux être gaucher pour maximiser les chances de devenir un joueur de hockey professionnel.  
+
+
+```{r Quantité de joueurs gaucher et droitier}
+nhl_rosters %>%
+  filter(!is.na(shoots_catches)) %>%
+  group_by(shoots_catches) %>%
+  count(shoots_catches)
+```
+
+## Conclusion
+
+Maintenant, il est possible de savoir ce que les jeunes joueurs doivent faire pour atteindre leur plus grand rêve : devenir un joueur de la LNH. Il est important de naître dans une grande ville canadienne au mois de janvier ou février, d’être plus grand et plus lourd que la moyenne, de pratiquer la position d’attaquant et enfin d’être un gaucher.
